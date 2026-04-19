@@ -1,0 +1,253 @@
+```html
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MDY Challenge - זה לא הדף זה היומי!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;800&family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Assistant', sans-serif;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .mdy-red { color: #e11d48; }
+        .bg-mdy-red { background-color: #e11d48; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.1);
+        }
+        .floating { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        .btn-active:active { transform: scale(0.96); }
+        .hidden { display: none !important; }
+        .progress-bar { transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="p-4 md:p-10 flex flex-col items-center">
+
+    <div id="app-container" class="w-full max-w-2xl">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <img src="https://i.ibb.co/GQ4L14SS/images-5.jpg" alt="MDY Logo" class="h-24 mx-auto mb-4 rounded-2xl shadow-xl border-2 border-white">
+            <h1 class="text-5xl font-black text-gray-900 tracking-tighter">האתגר של MDY <span class="mdy-red italic">אה!</span></h1>
+            <p class="text-xl text-gray-500 font-bold mt-2">זה לא הדף, זה היומי!</p>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="glass-card rounded-[40px] p-10 text-center border border-white">
+            <div class="relative inline-block mb-10">
+                <div class="absolute inset-0 bg-red-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
+                <img src="https://i.ibb.co/k6wS3k3Z/images-6.jpg" alt="הרב אלי סטפנסקי" class="w-52 h-52 object-cover rounded-full border-4 border-mdy-red relative z-10 shadow-2xl floating">
+                <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-mdy-red text-white font-black px-8 py-2 rounded-full shadow-2xl z-20 text-2xl">אה! אה! אה!</div>
+            </div>
+            <h2 class="text-3xl font-black text-gray-800 mb-6">למה אתה מפספס? בוא נגלה ב-100%!</h2>
+            <p class="text-gray-600 text-lg mb-10 leading-relaxed max-w-md mx-auto">
+                ר' אלי מחכה לך בבית שמש, בזום, ביוטיוב או בנקודות הצפייה ב-21:00.
+                בוא נבין איך מנצחים את היצר וממשיכים קדימה!
+            </p>
+            <button id="start-btn" class="w-full bg-mdy-red hover:bg-red-700 text-white text-2xl font-black py-6 rounded-3xl shadow-2xl transition-all btn-active flex items-center justify-center gap-4">
+                התחל אבחון עכשיו! <span>🔥</span>
+            </button>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div id="quiz-screen" class="hidden glass-card rounded-[40px] p-8 md:p-12 border border-white">
+            <div class="mb-10">
+                <div class="flex justify-between items-end mb-4">
+                    <span id="progress-text" class="text-sm font-black text-gray-400 uppercase tracking-widest">שאלה 1 מתוך 30</span>
+                    <span class="text-mdy-red font-black text-2xl">אה!</span>
+                </div>
+                <div class="w-full bg-gray-100 h-4 rounded-full overflow-hidden p-1">
+                    <div id="progress-bar" class="bg-mdy-red h-full rounded-full progress-bar" style="width: 3%"></div>
+                </div>
+            </div>
+
+            <div class="min-h-[140px] mb-10 flex items-center">
+                <h3 id="question-text" class="text-3xl md:text-4xl font-black text-gray-800 leading-tight">טוען שאלה...</h3>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 gap-5">
+                <!-- Options injected by JS -->
+            </div>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="hidden glass-card rounded-[40px] p-10 border border-white animate-in zoom-in duration-500">
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center justify-center w-24 h-24 bg-red-50 rounded-full mb-6 border-2 border-mdy-red">
+                    <img src="https://i.ibb.co/k6wS3k3Z/images-6.jpg" class="w-20 h-20 rounded-full object-cover">
+                </div>
+                <h2 class="text-4xl font-black text-gray-900 mb-4 tracking-tight">זהו זה! <span class="mdy-red">אה!</span></h2>
+                <div id="result-badge" class="bg-mdy-red text-white py-3 px-8 rounded-full inline-block font-black text-xl shadow-lg">
+                    <!-- Category Name -->
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-8 rounded-[32px] mb-10 border border-gray-100 shadow-inner">
+                <p id="result-desc" class="text-xl text-gray-700 leading-relaxed font-bold italic"></p>
+            </div>
+
+            <div class="space-y-6 mb-12">
+                <h4 class="font-black text-2xl text-gray-800 flex items-center gap-3">
+                    <span class="bg-mdy-red w-3 h-8 rounded-full"></span> הכלים שלך להתמדה:
+                </h4>
+                <div id="result-tips" class="grid gap-4">
+                    <!-- Tips injected by JS -->
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <a href="https://www.mdydafyomi.com/he/home-he?utm_source=copilot.com" target="_blank" class="w-full bg-mdy-red hover:bg-red-700 text-white font-black py-6 rounded-3xl text-2xl shadow-2xl transition-all btn-active text-center">
+                    הצטרף למשפחה באתר הרשמי!
+                </a>
+                <button onclick="location.reload()" class="w-full bg-gray-900 text-white font-bold py-5 rounded-2xl transition-all btn-active">
+                    בדיקה חוזרת
+                </button>
+            </div>
+
+            <!-- Footer MDY Info -->
+            <div class="mt-12 pt-8 border-t border-gray-100 text-center">
+                <p class="text-gray-400 font-bold">מרכז דף היומי - ר' אלי סטפנסקי</p>
+                <p class="text-gray-400 text-sm mt-1">קהילה עולמית • לימוד חווייתי • משפחה אחת</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            { q: "כמה זמן ביום אתה באמת פנוי ללימוד?", options: ["שעה שלמה (לשיעור המלא)", "חצי שעה (ל'רק הדף')", "15 דקות פה ושם", "אני במירוץ נגד השעון"], cat: "time" },
+            { q: "מה קורה בלב שלך כשאתה מפספס יום?", options: ["'אני חייב להשלים הכל לפני שאני ממשיך'", "'באסה, אולי מחר'", "'זה לא הדף, זה היומי - אני ממשיך הלאה!'", "'הלך עלי, אני פורש מהמסכת'"], cat: "perfectionism" },
+            { q: "האם ידעת שיש נקודת צפייה משותפת בעיר שלך ב-21:00?", options: ["בטח, אני שם!", "שמעתי על זה, לא הלכתי", "לא ידעתי, נשמע מעניין", "מעדיף ללמוד לבד בבית"], cat: "environment" },
+            { q: "איך אתה בדרך כלל צופה בר' אלי?", options: ["יוטיוב (מתי שנוח לי)", "זום (בלייב עם כולם)", "וואטסאפ / ספוטיפיי", "מגיע פיזית לבית שמש"], cat: "tech" },
+            { q: "מה הדבר שהכי מושך אותך ב-MDY?", options: ["ההמחשות והטבלאות", "ההומור והאנרגיה (אה!)", "התחושה שאני חלק מקהילה עולמית", "הקצב המהיר והברור"], cat: "motivation" },
+            { q: "כשיש סוגיה קשה בגמרא, מה אתה עושה?", options: ["מתעכב עד שאני מבין 100%", "סומך על ההסבר והאיורים של ר' אלי", "מאבד ריכוז ועובר לטלפון", "מריץ קדימה"], cat: "perfectionism" },
+            { q: "האם ה'אה!' של הרב עוזר לך?", options: ["מעיר אותי בשניות!", "זה נחמד", "זה קצת רועש לי", "זה הסוד של השיעור!"], cat: "motivation" },
+            { q: "מתי אתה לומד בדרך כלל?", options: ["בוקר מוקדם", "צהריים בעבודה", "ערב מאוחר", "אין לי זמן קבוע"], cat: "time" },
+            { q: "האם אתה משתמש בטבלאות הריכוז היומיות?", options: ["קבוע!", "לפעמים", "לא ידעתי שיש כאלו", "זה נראה לי מסובך"], cat: "tech" },
+            { q: "כמה דפים חסרים לך כרגע להשלמה?", options: ["0 - אני ב'יומי'!", "1-2 דפים", "מסכת שלמה כמעט", "אני לא סופר, אני פשוט לומד היום"], cat: "perfectionism" },
+            { q: "האם היית רוצה להרגיש יותר 'חלק מהמשפחה'?", options: ["אני כבר מרגיש ככה", "כן, אולי להצטרף לקבוצה מקומית", "לא ממש משנה לי", "אני צופה שקט"], cat: "motivation" },
+            { q: "מה האתגר הטכנולוגי הכי גדול שלך?", options: ["למצוא את הלינק הנכון", "האינטרנט איטי", "אין לי אתגר, הכל זורם", "מעדיף רק גמרא פיזית"], cat: "tech" },
+            { q: "האם אתה יודע ש'רק הדף' לוקח רק 30 דקות?", options: ["זה מה שמציל אותי", "מעדיף את השעה המלאה", "שמעתי אבל לא ניסיתי", "אני לומד את שניהם אה!"], cat: "time" },
+            { q: "איפה הכי קשה לך להתרכז?", options: ["בבית עם הילדים", "בעבודה", "באוטובוס/רכבת", "אני מתרכז בכל מקום"], cat: "environment" },
+            { q: "איזו גמרא הכי נוחה לך ללימוד?", options: ["הגמרא המאוירת של MDY", "גמרא רגילה", "אפליקציה בטלפון", "צופה רק במסך"], cat: "motivation" },
+            { q: "כשאתה עייף מאוד בערב, מה אתה עושה?", options: ["מוותר", "רואה 'רק הדף'", "נלחם בשעה שלמה", "שומע רק אודיו במיטה"], cat: "time" },
+            { q: "האם אתה משתף אחרים ב'וורטים' מהשיעור?", options: ["בטח, בשולחן שבת", "מדי פעם", "לא", "רק את אשתי"], cat: "motivation" },
+            { q: "איך הסביבה שלך מגיבה ללימוד?", options: ["מעודדים אותי מאוד", "זה מפריע להם", "לא יודעים שאני לומד", "הם לומדים איתי!"], cat: "environment" },
+            { q: "מה קורה ביום שישי?", options: ["משלים את כל השבוע", "לומד כרגיל", "ביום שישי אני תמיד מפספס", "רואה שיעור מקוצר"], cat: "time" },
+            { q: "האם היית פעם בשיעור בבית שמש?", options: ["כן, אה!", "עוד לא, מתכנן", "רחוק לי מדי", "אני גר שם!"], cat: "environment" },
+            { q: "מה דעתך על האיורים והמחשות בשיעור?", options: ["זה מה שעושה את הגמרא נגישה", "זה נחמד אבל לא חובה", "זה קצת מסיח דעת", "הכי חשוב בשיעור"], cat: "tech" },
+            { q: "כשיש אירוע משפחתי, מה קורה עם הדף?", options: ["מפספס", "לומד בדרך/בלילה", "לומד 'רק הדף'", "לא הולך לאירוע (סתם!)"], cat: "time" },
+            { q: "האם אתה עוקב אחרי ר' אלי גם בסטטוס/וואטסאפ?", options: ["קבוע", "מדי פעם", "לא", "אין לי וואטסאפ"], cat: "tech" },
+            { q: "האם אתה מרגיש שהשיעור 'מהיר מדי'?", options: ["לפעמים", "בדיוק בקצב שלי", "איטי מדי", "אני עושה X2"], cat: "tech" },
+            { q: "מה נותן לך הכי הרבה מוטיבציה?", options: ["לסיים את הש\"ס עם כולם", "החיוך של ר' אלי", "ההבנה של הגמרא", "החברים בקהילה"], cat: "motivation" },
+            { q: "כמה פעמים בשבוע אתה אומר 'זה לא הדף זה היומי'?", options: ["כל יום!", "כשצריך", "לא אומר", "מה זה אומר?"], cat: "perfectionism" },
+            { q: "האם אתה מחובר לקבוצת וואטסאפ של הלומדים?", options: ["כן, זה מחזק", "לא, יש שם יותר מדי הודעות", "מחפש קבוצה כזו", "מעדיף שקט"], cat: "environment" },
+            { q: "האם אתה לומד גם בשבת?", options: ["כן, בנחת", "בשבת הכי קשה לי", "יום ראשון משלים", "שבת זה הזמן של ה'רק הדף'"], cat: "time" },
+            { q: "איך היית מגדיר את MDY במילה אחת?", options: ["משפחה", "אנרגיה", "מהפכה", "גמרא"], cat: "motivation" },
+            { q: "האם אתה מוכן להתחייב להמשיך מחר גם אם פספסת היום? אה!", options: ["בטח! זה היומי!", "אשתדל", "אני חייב להשלים קודם", "אני בפנים אה!"], cat: "perfectionism" }
+        ];
+
+        let currentQ = 0;
+        let scores = { perfectionism: 0, time: 0, tech: 0, environment: 0, motivation: 0 };
+
+        const startBtn = document.getElementById('start-btn');
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+
+        startBtn.addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            renderQuestion();
+        });
+
+        function renderQuestion() {
+            const q = questions[currentQ];
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('progress-text').innerText = `שאלה ${currentQ + 1} מתוך ${questions.length}`;
+            document.getElementById('progress-bar').style.width = `${((currentQ + 1) / questions.length) * 100}%`;
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-right p-6 rounded-3xl border-2 border-gray-100 hover:border-mdy-red hover:bg-red-50 transition-all btn-active font-bold text-gray-700 text-xl shadow-sm";
+                btn.innerText = opt;
+                btn.onclick = () => handleAnswer(q.cat, index);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(cat, index) {
+            scores[cat] += (4 - index);
+            currentQ++;
+            if (currentQ < questions.length) {
+                renderQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+
+            const topCat = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+            
+            const resultsData = {
+                perfectionism: {
+                    title: "הפרפקציוניסט - אה!",
+                    desc: "הסוד של ר' אלי הוא 'זה לא הדף, זה היומי'. אתה מנסה להיות מושלם, וכשאתה מפספס - אתה נתקע על העבר במקום להתקדם.",
+                    tips: ["פספסת? תמשיך הלאה לדף של היום מיד!", "אל תסתכל אחורה, העיקר הרצף היומי.", "השלמות אפשר לעשות בשבת בנחת."]
+                },
+                time: {
+                    title: "הלוחם בזמן - אה!",
+                    desc: "הלו\"ז שלך צפוף. הפתרון הוא לא לוותר, אלא להתאים את הלימוד לזמן שיש.",
+                    tips: ["עבור למסלול 'רק הדף' - 30 דקות וסיימת.", "נצל את נקודות הצפייה ב-21:00 בערים.", "לימוד בדרכים ביוטיוב/אודיו."]
+                },
+                environment: {
+                    title: "הבודד במערכה - אה!",
+                    desc: "קשה ללמוד לבד. אתה צריך את האנרגיה של הקהילה כדי להישאר במסלול.",
+                    tips: ["הצטרף לנקודת צפייה מקומית ב-21:00.", "בוא לבית שמש פעם בחודש להטעין מצברים.", "מצא חברותא לחיזוק הדדי."]
+                },
+                motivation: {
+                    title: "מחפש הניצוץ - אה!",
+                    desc: "אתה צריך את החיבור הרגשי והאנרגיה כדי להתמיד כל יום.",
+                    tips: ["אל תוותר על הטבלאות והאיורים.", "תגיד 'אה!' בקול רם עם הרב - זה עובד!", "הצטרף לזום בלייב כדי להרגיש את הקהילה."]
+                },
+                tech: {
+                    title: "המתקשה הדיגיטלי - אה!",
+                    desc: "הטכנולוגיה לפעמים מסבכת אותך. פשטות היא המפתח.",
+                    tips: ["קבע פלטפורמה אחת (יוטיוב/זום) והישאר בה.", "שים קיצור דרך לאתר על מסך הבית.", "בקש מהילדים עזרה להגדרות קבועות."]
+                }
+            };
+
+            const data = resultsData[topCat];
+            document.getElementById('result-badge').innerText = data.title;
+            document.getElementById('result-desc').innerText = data.desc;
+            
+            const tipsContainer = document.getElementById('result-tips');
+            tipsContainer.innerHTML = data.tips.map((t, i) => `
+                <div class="flex gap-4 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                    <div class="flex-shrink-0 w-10 h-10 bg-mdy-red text-white rounded-full flex items-center justify-center font-black text-xl italic">
+                        ${i+1}
+                    </div>
+                    <p class="text-gray-800 font-bold text-lg leading-snug">${t}</p>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
+
+```
