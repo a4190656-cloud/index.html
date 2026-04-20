@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>התקציב המשפחתי - ריקי ואהרל'ה</title>
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -16,44 +16,68 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;400;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;400;600;800&display=swap');
         body { 
             font-family: 'Assistant', sans-serif;
             -webkit-tap-highlight-color: transparent;
+            background-color: #0f172a;
+            color: #f1f5f9;
         }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* אנימציות פרימיום */
+        @keyframes slideUpFade {
+            0% { opacity: 0; transform: translateY(40px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .animate-slide-up { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- הגדרות FIREBASE (הדבק כאן את הפרטים שלך) ---
+        // הגדרות FIREBASE המעודכנות שלך
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyBqpLOIbztpurGuUqpfaWZT71JcofKG2rc",
+            authDomain: "riki-aharele-budget.firebaseapp.com",
+            projectId: "riki-aharele-budget",
+            storageBucket: "riki-aharele-budget.firebasestorage.app",
+            messagingSenderId: "53506652532",
+            appId: "1:53506652532:web:28b3e3fc28114b1feb9421"
         };
 
+        // אתחול
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const auth = firebase.auth();
         const db = firebase.firestore();
-        db.enablePersistence().catch(() => console.log("Offline mode ready"));
+        db.enablePersistence().catch(() => console.log("Offline mode active"));
 
         const appId = 'riki-aharele-budget';
 
         const Icon = ({ name, size = 24, className = "" }) => {
-            useEffect(() => {
-                if (window.lucide) window.lucide.createIcons();
-            }, [name]);
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
             return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
         };
 
@@ -80,56 +104,26 @@
             useEffect(() => {
                 if (!user) return;
                 const baseRef = db.collection('artifacts').doc(appId).collection('public').doc('data');
-                
-                const unsubIncomes = baseRef.collection('incomes').onSnapshot(snap => 
-                    setIncomes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-                );
-                const unsubExpenses = baseRef.collection('expenses').onSnapshot(snap => 
-                    setExpenses(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-                );
-                const unsubFixedExp = baseRef.collection('fixed_settings').onSnapshot(snap => 
-                    setFixedExpenses(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-                );
-                const unsubFixedInc = baseRef.collection('fixed_incomes').onSnapshot(snap => 
-                    setFixedIncomes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-                );
-
-                return () => { unsubIncomes(); unsubExpenses(); unsubFixedExp(); unsubFixedInc(); };
+                const unsub1 = baseRef.collection('incomes').onSnapshot(s => setIncomes(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                const unsub2 = baseRef.collection('expenses').onSnapshot(s => setExpenses(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                const unsub3 = baseRef.collection('fixed_settings').onSnapshot(s => setFixedExpenses(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                const unsub4 = baseRef.collection('fixed_incomes').onSnapshot(s => setFixedIncomes(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
             }, [user]);
 
             const cycleData = useMemo(() => {
                 const now = new Date();
-                const currentYear = now.getFullYear();
-                const currentMonth = now.getMonth();
-                
-                let startDate;
-                if (now.getDate() >= 15) {
-                    startDate = new Date(currentYear, currentMonth, 15);
-                } else {
-                    startDate = new Date(currentYear, currentMonth - 1, 15);
-                }
+                let startDate = new Date(now.getFullYear(), now.getMonth(), 15);
+                if (now.getDate() < 15) startDate.setMonth(startDate.getMonth() - 1);
 
-                const currentVarIncomes = incomes.filter(item => new Date(item.date) >= startDate);
-                const currentVarExpenses = expenses.filter(item => new Date(item.date) >= startDate);
+                const curVarInc = incomes.filter(i => new Date(i.date) >= startDate);
+                const curVarExp = expenses.filter(i => new Date(i.date) >= startDate);
 
-                const totalVarIncome = currentVarIncomes.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-                const totalFixedIncome = fixedIncomes.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-                
-                const totalFixedExpense = fixedExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-                const totalVarExpense = currentVarExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-                
-                const totalIncome = totalVarIncome + totalFixedIncome;
-                const totalExpense = totalFixedExpense + totalVarExpense;
+                const totalInc = curVarInc.reduce((s, i) => s + Number(i.amount || 0), 0) + fixedIncomes.reduce((s, i) => s + Number(i.amount || 0), 0);
+                const totalFixedExp = fixedExpenses.reduce((s, i) => s + Number(i.amount || 0), 0);
+                const totalVarExp = curVarExp.reduce((s, i) => s + Number(i.amount || 0), 0);
 
-                return {
-                    totalIncome,
-                    totalFixedExpense,
-                    totalVarExpense,
-                    balance: totalIncome - totalExpense,
-                    filteredIncomes: currentVarIncomes,
-                    filteredExpenses: currentVarExpenses,
-                    startDate
-                };
+                return { totalIncome: totalInc, totalFixedExp, totalVarExp, balance: totalInc - totalFixedExp - totalVarExp, filteredIncomes: curVarInc, filteredExpenses: curVarExp };
             }, [incomes, expenses, fixedExpenses, fixedIncomes]);
 
             const handleAddItem = async (e) => {
@@ -139,8 +133,7 @@
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection(col).add({
                     amount: Number(formData.get('amount')),
                     description: formData.get('description'),
-                    date: new Date().toISOString(),
-                    createdBy: user.uid
+                    date: new Date().toISOString()
                 });
                 setIsModalOpen(false);
             };
@@ -160,78 +153,62 @@
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection(col).doc(id).delete();
             };
 
-            if (loading) return (
-                <div className="min-h-screen bg-slate-950 flex items-center justify-center text-emerald-400">טוען נתונים...</div>
-            );
+            if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-emerald-500 font-bold">טוען יוקרה...</div>;
 
             return (
-                <div className="min-h-screen pb-28">
-                    {/* Header */}
-                    <header className="bg-slate-900 text-white p-6 rounded-b-[3rem] shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                        <div className="relative z-10">
-                            <div className="flex justify-between items-center mb-4">
-                                <div>
-                                    <h1 className="text-xs font-medium text-slate-400 uppercase tracking-widest">שלום, ריקי ואהרל'ה</h1>
-                                    <p className="text-2xl font-black tracking-tight">ניהול תקציב</p>
-                                </div>
-                                <div className="bg-white/10 p-3 rounded-2xl border border-white/10"><Icon name="wallet" className="text-emerald-400" /></div>
+                <div className="min-h-screen pb-32">
+                    <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
+                        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-emerald-600/10 rounded-full blur-[100px] animate-pulse-glow"></div>
+                        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-rose-600/10 rounded-full blur-[120px] animate-pulse-glow"></div>
+                    </div>
+
+                    <header className="pt-12 pb-8 px-6 animate-slide-up">
+                        <div className="flex justify-between items-center mb-8 animate-float">
+                            <div>
+                                <h1 className="text-3xl font-black text-white">שלום, ריקי ואהרל'ה</h1>
+                                <p className="text-slate-400 text-sm font-bold">התקציב המשפחתי</p>
                             </div>
-                            <div className="text-center py-4">
-                                <span className="text-slate-400 text-[10px] block mb-1">יתרה למחזור הנוכחי (מה-15 לחודש)</span>
-                                <h2 className={`text-6xl font-black transition-colors ${cycleData.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                    ₪{cycleData.balance.toLocaleString()}
-                                </h2>
-                            </div>
-                            <div className="grid grid-cols-3 gap-3 mt-6">
-                                <div className="bg-white/5 p-3 rounded-2xl border border-white/5 text-center">
-                                    <span className="text-[9px] text-slate-400 block mb-1">סה"כ הכנסות</span>
-                                    <span className="text-sm font-bold text-emerald-400">₪{cycleData.totalIncome.toLocaleString()}</span>
-                                </div>
-                                <div className="bg-white/5 p-3 rounded-2xl border border-white/5 text-center">
-                                    <span className="text-[9px] text-slate-400 block mb-1">הוצ' קבועות</span>
-                                    <span className="text-sm font-bold text-slate-200">₪{cycleData.totalFixedExpense.toLocaleString()}</span>
-                                </div>
-                                <div className="bg-white/5 p-3 rounded-2xl border border-white/5 text-center">
-                                    <span className="text-[9px] text-slate-400 block mb-1">הוצ' משתנות</span>
-                                    <span className="text-sm font-bold text-rose-400">₪{cycleData.totalVarExpense.toLocaleString()}</span>
-                                </div>
-                            </div>
+                            <div className="bg-emerald-500 p-3 rounded-2xl shadow-lg shadow-emerald-500/20"><Icon name="wallet" className="text-slate-900" /></div>
+                        </div>
+
+                        <div className="glass-panel p-8 rounded-[2.5rem] text-center shadow-2xl">
+                            <span className="text-slate-400 text-[10px] uppercase font-bold tracking-widest block mb-2">יתרה למחזור (מה-15 לחודש)</span>
+                            <h2 className={`text-6xl font-black ${cycleData.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                ₪{cycleData.balance.toLocaleString()}
+                            </h2>
                         </div>
                     </header>
 
-                    {/* Main Content */}
-                    <main className="px-6 mt-8 space-y-8 animate-fade-in">
+                    <main className="px-6 space-y-8 animate-slide-up" style={{animationDelay: '0.2s'}}>
                         {view === 'dashboard' ? (
                             <>
                                 <section className="grid grid-cols-2 gap-4">
-                                    <button onClick={() => { setModalType('income'); setIsModalOpen(true); }} className="flex flex-col items-center p-6 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 shadow-sm active:scale-95 transition-all">
-                                        <Icon name="arrow-up-circle" size={32} className="text-emerald-600 mb-2" />
-                                        <span className="text-emerald-900 font-bold">הכנסה</span>
+                                    <button onClick={() => { setModalType('income'); setIsModalOpen(true); }} className="flex flex-col items-center p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-[2rem] active:scale-95 transition-all">
+                                        <Icon name="plus-circle" className="text-emerald-400 mb-2" size={32} />
+                                        <span className="text-emerald-400 font-bold text-sm">הכנסה חדשה</span>
                                     </button>
-                                    <button onClick={() => { setModalType('expense'); setIsModalOpen(true); }} className="flex flex-col items-center p-6 bg-rose-50 rounded-[2.5rem] border border-rose-100 shadow-sm active:scale-95 transition-all">
-                                        <Icon name="arrow-down-circle" size={32} className="text-rose-600 mb-2" />
-                                        <span className="text-rose-900 font-bold">הוצאה</span>
+                                    <button onClick={() => { setModalType('expense'); setIsModalOpen(true); }} className="flex flex-col items-center p-6 bg-rose-500/10 border border-rose-500/20 rounded-[2rem] active:scale-95 transition-all">
+                                        <Icon name="minus-circle" className="text-rose-400 mb-2" size={32} />
+                                        <span className="text-rose-400 font-bold text-sm">הוצאה חדשה</span>
                                     </button>
                                 </section>
 
                                 <section>
-                                    <h3 className="font-extrabold text-lg text-slate-800 mb-4 flex items-center justify-between">
-                                        <span>תנועות מה-15 לחודש</span>
-                                        <span className="text-[10px] bg-slate-200 px-2 py-1 rounded-full text-slate-500 italic">מחזור נוכחי</span>
-                                    </h3>
+                                    <h3 className="font-black text-xl mb-4 px-2 italic">תנועות אחרונות</h3>
                                     <div className="space-y-3">
                                         {[...cycleData.filteredIncomes, ...cycleData.filteredExpenses].sort((a,b) => new Date(b.date) - new Date(a.date)).map(item => {
                                             const isInc = incomes.some(i => i.id === item.id);
                                             return (
-                                                <div key={item.id} className="bg-white p-4 rounded-3xl shadow-sm flex justify-between items-center border border-slate-100">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`p-2 rounded-xl ${isInc ? 'bg-emerald-100' : 'bg-rose-100'}`}><Icon name={isInc ? "trending-up" : "shopping-bag"} size={18} className={isInc ? "text-emerald-600" : "text-rose-600"} /></div>
-                                                        <div><p className="font-bold text-sm text-slate-800">{item.description}</p><p className="text-[10px] text-slate-400">{new Date(item.date).toLocaleDateString('he-IL')}</p></div>
+                                                <div key={item.id} className="glass-panel p-4 rounded-3xl flex justify-between items-center">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`p-3 rounded-2xl ${isInc ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                                            <Icon name={isInc ? "trending-up" : "shopping-bag"} size={20} />
+                                                        </div>
+                                                        <div><p className="font-bold text-sm">{item.description}</p><p className="text-[10px] text-slate-500">{new Date(item.date).toLocaleDateString('he-IL')}</p></div>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className={`font-black ${isInc ? 'text-emerald-600' : 'text-rose-600'}`}>{isInc ? '+' : '-'}₪{item.amount}</span>
-                                                        <button onClick={() => deleteItem(isInc ? 'incomes' : 'expenses', item.id)} className="text-slate-300"><Icon name="trash-2" size={16} /></button>
+                                                    <div className="flex items-center gap-4">
+                                                        <span className={`font-black text-lg ${isInc ? 'text-emerald-400' : 'text-rose-400'}`}>{isInc ? '+' : '-'}₪{item.amount}</span>
+                                                        <button onClick={() => deleteItem(isInc ? 'incomes' : 'expenses', item.id)} className="text-slate-600 hover:text-rose-500"><Icon name="trash-2" size={16} /></button>
                                                     </div>
                                                 </div>
                                             );
@@ -240,64 +217,48 @@
                                 </section>
                             </>
                         ) : (
-                            <section className="animate-fade-in space-y-10">
-                                {/* ניהול הכנסות קבועות */}
+                            <section className="space-y-10">
                                 <div>
-                                    <h3 className="font-black text-xl text-emerald-800 mb-4 text-center">הכנסות קבועות חודשיות</h3>
-                                    <form onSubmit={(e) => handleAddFixed(e, 'income')} className="bg-white p-6 rounded-[2.5rem] shadow-lg border border-emerald-100 mb-4 space-y-3">
-                                        <input name="name" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold" placeholder="מקור הכנסה (למשל: משכורת)" />
-                                        <input name="amount" type="number" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold" placeholder="סכום קבוע" />
-                                        <button type="submit" className="w-full bg-emerald-600 text-white p-4 rounded-2xl font-black active:scale-95 transition-all">הוסף הכנסה קבועה</button>
+                                    <h3 className="font-black text-xl text-emerald-400 mb-4 text-center">הכנסות קבועות</h3>
+                                    <form onSubmit={(e) => handleAddFixed(e, 'income')} className="glass-panel p-6 rounded-[2rem] space-y-4">
+                                        <input name="name" required className="w-full p-4 bg-slate-900/50 rounded-xl outline-none border border-white/5 focus:border-emerald-500 transition-all font-bold" placeholder="מקור (למשל: משכורת)" />
+                                        <input name="amount" type="number" required className="w-full p-4 bg-slate-900/50 rounded-xl outline-none border border-white/5 focus:border-emerald-500 transition-all font-bold" placeholder="סכום קבוע" />
+                                        <button type="submit" className="w-full bg-emerald-500 text-slate-900 p-4 rounded-xl font-black active:scale-95 transition-all">הוסף הכנסה קבועה</button>
                                     </form>
-                                    <div className="space-y-2">
-                                        {fixedIncomes.map(item => (
-                                            <div key={item.id} className="bg-emerald-50 p-4 rounded-2xl flex justify-between items-center border border-emerald-100">
-                                                <p className="font-bold text-emerald-900">{item.name}</p>
-                                                <div className="flex items-center gap-4"><span className="font-black text-emerald-700">₪{item.amount}</span>
-                                                <button onClick={() => deleteItem('fixed_incomes', item.id)} className="text-rose-400"><Icon name="trash-2" size={18}/></button></div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <div className="mt-4 space-y-2">{fixedIncomes.map(item => (
+                                        <div key={item.id} className="glass-panel p-4 rounded-2xl flex justify-between items-center"><p className="font-bold text-emerald-400">{item.name}</p><div className="flex items-center gap-4"><span className="font-black">₪{item.amount}</span><button onClick={() => deleteItem('fixed_incomes', item.id)} className="text-rose-500"><Icon name="trash-2" size={18}/></button></div></div>
+                                    ))}</div>
                                 </div>
 
-                                {/* ניהול הוצאות קבועות */}
                                 <div>
-                                    <h3 className="font-black text-xl text-slate-800 mb-4 text-center">הוצאות קבועות חודשיות</h3>
-                                    <form onSubmit={(e) => handleAddFixed(e, 'expense')} className="bg-white p-6 rounded-[2.5rem] shadow-lg border border-slate-100 mb-4 space-y-3">
-                                        <input name="name" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-slate-900 font-bold" placeholder="שם ההוצאה (למשל: שכירות)" />
-                                        <input name="amount" type="number" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-slate-900 font-bold" placeholder="סכום קבוע" />
-                                        <button type="submit" className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black active:scale-95 transition-all">הוסף הוצאה קבועה</button>
+                                    <h3 className="font-black text-xl text-rose-400 mb-4 text-center">הוצאות קבועות</h3>
+                                    <form onSubmit={(e) => handleAddFixed(e, 'expense')} className="glass-panel p-6 rounded-[2rem] space-y-4">
+                                        <input name="name" required className="w-full p-4 bg-slate-900/50 rounded-xl outline-none border border-white/5 focus:border-rose-500 transition-all font-bold" placeholder="שם ההוצאה (למשל: שכירות)" />
+                                        <input name="amount" type="number" required className="w-full p-4 bg-slate-900/50 rounded-xl outline-none border border-white/5 focus:border-rose-500 transition-all font-bold" placeholder="סכום קבוע" />
+                                        <button type="submit" className="w-full bg-rose-500 text-white p-4 rounded-xl font-black active:scale-95 transition-all">הוסף הוצאה קבועה</button>
                                     </form>
-                                    <div className="space-y-2">
-                                        {fixedExpenses.map(item => (
-                                            <div key={item.id} className="bg-slate-100 p-4 rounded-2xl flex justify-between items-center border border-slate-200">
-                                                <p className="font-bold text-slate-800">{item.name}</p>
-                                                <div className="flex items-center gap-4"><span className="font-black">₪{item.amount}</span>
-                                                <button onClick={() => deleteItem('fixed_settings', item.id)} className="text-rose-400"><Icon name="trash-2" size={18}/></button></div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <div className="mt-4 space-y-2">{fixedExpenses.map(item => (
+                                        <div key={item.id} className="glass-panel p-4 rounded-2xl flex justify-between items-center"><p className="font-bold text-slate-300">{item.name}</p><div className="flex items-center gap-4"><span className="font-black">₪{item.amount}</span><button onClick={() => deleteItem('fixed_settings', item.id)} className="text-rose-500"><Icon name="trash-2" size={18}/></button></div></div>
+                                    ))}</div>
                                 </div>
                             </section>
                         )}
                     </main>
 
-                    {/* Nav */}
-                    <nav className="fixed bottom-6 left-6 right-6 bg-slate-900/95 backdrop-blur-lg px-10 py-5 flex justify-between items-center shadow-2xl rounded-[2.5rem] z-40 border border-white/10">
-                        <button onClick={() => setView('dashboard')} className={`flex flex-col items-center gap-1 ${view === 'dashboard' ? 'text-emerald-400' : 'text-slate-500'}`}><Icon name="layout-dashboard" size={24} /><span className="text-[10px] font-bold">ראשי</span></button>
-                        <button onClick={() => setView('settings')} className={`flex flex-col items-center gap-1 ${view === 'settings' ? 'text-emerald-400' : 'text-slate-500'}`}><Icon name="settings" size={24} /><span className="text-[10px] font-bold">הגדרות</span></button>
+                    <nav className="fixed bottom-6 left-6 right-6 glass-panel p-5 flex justify-around rounded-[2.5rem] z-40">
+                        <button onClick={() => setView('dashboard')} className={`flex flex-col items-center ${view === 'dashboard' ? 'text-emerald-400 scale-110' : 'text-slate-500'} transition-all`}><Icon name="layout-dashboard" /><span className="text-[10px] font-bold mt-1">ראשי</span></button>
+                        <button onClick={() => setView('settings')} className={`flex flex-col items-center ${view === 'settings' ? 'text-emerald-400 scale-110' : 'text-slate-500'} transition-all`}><Icon name="settings" /><span className="text-[10px] font-bold mt-1">הגדרות</span></button>
                     </nav>
 
-                    {/* Modal */}
                     {isModalOpen && (
-                        <div className="fixed inset-0 z-50 flex items-end justify-center p-4">
-                            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-                            <div className="relative w-full max-w-md bg-white rounded-[3rem] p-8 animate-in slide-in-from-bottom-full duration-300">
-                                <h3 className="text-xl font-black text-center mb-6">{modalType === 'income' ? 'הכנסה חדשה 💰' : 'הוצאה חדשה 💸'}</h3>
-                                <form onSubmit={handleAddItem} className="space-y-5">
-                                    <input name="amount" type="number" required autoFocus className="w-full text-4xl font-black text-center py-4 bg-slate-50 rounded-2xl outline-none" placeholder="0" />
-                                    <input name="description" required className="w-full p-4 bg-slate-50 rounded-xl outline-none" placeholder="תיאור..." />
-                                    <button type="submit" className={`w-full p-5 rounded-2xl text-white font-black text-lg ${modalType === 'income' ? 'bg-emerald-500' : 'bg-rose-500'}`}>אישור</button>
+                        <div className="fixed inset-0 z-50 flex items-end justify-center">
+                            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
+                            <div className="relative w-full max-w-md bg-slate-900 rounded-t-[3rem] p-8 animate-slide-up border-t border-white/10">
+                                <h3 className="text-2xl font-black text-center mb-8">{modalType === 'income' ? 'הכנסה חדשה 💰' : 'הוצאה חדשה 💸'}</h3>
+                                <form onSubmit={handleAddItem} className="space-y-6">
+                                    <input name="amount" type="number" required autoFocus className="w-full text-5xl font-black text-center py-6 bg-slate-950 rounded-[2rem] outline-none border border-white/5 focus:border-emerald-500 transition-all" placeholder="0" />
+                                    <input name="description" required className="w-full p-5 bg-slate-950 rounded-2xl outline-none border border-white/5 focus:border-emerald-500 transition-all font-bold" placeholder="עבור מה?" />
+                                    <button type="submit" className={`w-full p-6 rounded-2xl font-black text-xl shadow-2xl ${modalType === 'income' ? 'bg-emerald-500 text-slate-950' : 'bg-rose-500 text-white'}`}>אישור ושמירה</button>
                                 </form>
                             </div>
                         </div>
