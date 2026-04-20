@@ -1,52 +1,92 @@
+```html
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מתמלל AO - מערכת תמלול חכמה</title>
+    <title>מתמלל AO | פרימיום</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;800&family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;800&family=Heebo:wght@500;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Assistant', 'Heebo', sans-serif; background-color: #05070a; color: #e2e8f0; }
-        .animate-spin-slow { animation: spin 12s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); }
+        :root {
+            --ao-cyan: #06b6d4;
+            --ao-orange: #f97316;
+            --ao-dark: #020617;
+        }
+        body { 
+            font-family: 'Assistant', sans-serif; 
+            background: radial-gradient(circle at top right, #0f172a, #020617);
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+        .ao-glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .ao-gradient-text {
+            background: linear-gradient(135deg, var(--ao-cyan), var(--ao-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
         const App = () => {
             const [file, setFile] = useState(null);
             const [isProcessing, setIsProcessing] = useState(false);
             const [result, setResult] = useState(null);
             const [activeTab, setActiveTab] = useState('transcription');
-            
-            // הכנס את מפתח ה-API שלך כאן
+            const [copyLabel, setCopyLabel] = useState('העתק תוכן');
+
+            // מפתח ה-API שלך - וודא שהוא תקין
             const apiKey = "AIzaSyDdeH_8iw6aOm7hMvbUfohTSABR4GdVGfY";
+
             const fileToBase64 = (file) => {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.readAsDataURL(file);
                     reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = (error) => reject(error);
+                    reader.onerror = (e) => reject(e);
                 });
             };
 
+            const handleCopy = (text) => {
+                const el = document.createElement('textarea');
+                el.value = text;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                setCopyLabel('הועתק! ✓');
+                setTimeout(() => setCopyLabel('העתק תוכן'), 2000);
+            };
+
             const processFile = async () => {
-                if (!file || !apiKey || apiKey === "YOUR_API_KEY_HERE") {
-                    alert("אנא וודא שנבחר קובץ ושהזנת מפתח API תקין בקוד.");
+                if (!file) return;
+                if (!apiKey || apiKey.includes("YOUR")) {
+                    alert("שגיאה: מפתח API לא תקין בקוד.");
                     return;
                 }
-                
+
                 setIsProcessing(true);
                 setResult(null);
 
@@ -58,106 +98,168 @@
                         body: JSON.stringify({
                             contents: [{
                                 parts: [
-                                    { text: "אתה 'מתמלל AO', ארכיטקט תוכן ברמה גבוהה. נתח את הקובץ המצורף והחזר תשובה בפורמט JSON בלבד בעברית עם המפתחות הבאים: transcription (תמלול מלא), summary (סיכום המפגש), actionItems (מערך של משימות לביצוע), ו-viralHooks (מערך של רעיונות לסרטונים ויראליים)." },
+                                    { text: "אתה 'מתמלל AO', מומחה תוכן בכיר. נתח את הקובץ המצורף והחזר אך ורק JSON בעברית עם המפתחות: transcription (תמלול מלא ומדויק), summary (סיכום קצר וקולע), actionItems (מערך של משימות), viralHooks (מערך של 3 רעיונות לסרטונים קצרים)." },
                                     { inlineData: { mimeType: file.type, data: base64Data } }
                                 ]
-                            }],
-                            generationConfig: { responseMimeType: "application/json" }
+                            }]
                         })
                     });
 
                     const data = await response.json();
-                    if (data.candidates && data.candidates[0].content.parts[0].text) {
-                        const aiResponse = JSON.parse(data.candidates[0].content.parts[0].text);
-                        setResult(aiResponse);
-                    } else {
-                        throw new Error("תגובה לא תקינה מה-API");
-                    }
+                    
+                    if (data.error) throw new Error(data.error.message);
+
+                    let rawText = data.candidates[0].content.parts[0].text;
+                    // ניקוי JSON פרימיום
+                    const cleanJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+                    const parsed = JSON.parse(cleanJson);
+                    setResult(parsed);
                 } catch (error) {
-                    console.error("Error:", error);
-                    alert("שגיאה בעיבוד: " + error.message);
+                    console.error(error);
+                    alert("שגיאה בעיבוד הקובץ. וודא שמפתח ה-API תקין ושהקובץ לא גדול מדי.");
                 } finally {
                     setIsProcessing(false);
                 }
             };
 
             return (
-                <div className="min-h-screen p-4 md:p-8 flex flex-col items-center">
-                    <header className="mb-10 text-center animate-fade-in">
-                        <div className="relative inline-block mb-6">
-                            <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500 to-orange-500 rounded-full blur opacity-40 animate-spin-slow"></div>
-                            <img src="https://i.ibb.co/pB3Yp5jN/IMG-20260419-WA0041.jpg" className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-slate-900 object-cover shadow-2xl" alt="AO Logo" />
+                <div className="max-w-4xl mx-auto px-4 py-10 min-h-screen flex flex-col">
+                    {/* Header Section */}
+                    <header className="text-center mb-12">
+                        <div className="relative inline-block group animate-float">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-orange-500 rounded-full blur opacity-50 group-hover:opacity-100 transition duration-1000"></div>
+                            <img 
+                                src="https://i.ibb.co/pB3Yp5jN/IMG-20260419-WA0041.jpg" 
+                                className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-slate-900 object-cover"
+                                alt="AO Productions"
+                            />
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">מתמלל <span className="text-cyan-500">AO</span></h1>
-                        <p className="text-slate-400 mt-3 font-medium">הופכים קול לנכסים דיגיטליים חכמים</p>
+                        <h1 className="mt-8 text-5xl md:text-6xl font-black tracking-tighter">
+                            מתמלל <span className="ao-gradient-text">AO</span>
+                        </h1>
+                        <p className="text-slate-400 mt-2 text-lg font-light tracking-widest uppercase">Content Architecture System</p>
                     </header>
 
-                    <main className="w-full max-w-3xl glass rounded-[2.5rem] p-6 md:p-10 shadow-2xl transition-all">
+                    {/* Main Container */}
+                    <main className="ao-glass rounded-[3rem] p-6 md:p-12 transition-all duration-500">
                         {!result ? (
-                            <div className="text-center py-10">
+                            <div className="text-center">
                                 {isProcessing ? (
-                                    <div className="space-y-6">
-                                        <div className="animate-spin inline-block w-16 h-16 border-[6px] border-cyan-500/20 border-t-cyan-500 rounded-full"></div>
-                                        <h2 className="text-2xl font-bold text-white animate-pulse">AO מעבד את הקובץ שלך...</h2>
-                                        <p className="text-slate-500 text-sm">זה לוקח כמה שניות, אנחנו מנתחים הכל</p>
+                                    <div className="py-20 space-y-8">
+                                        <div className="relative w-24 h-24 mx-auto">
+                                            <div className="absolute inset-0 border-t-4 border-cyan-500 rounded-full animate-spin"></div>
+                                            <div className="absolute inset-2 border-b-4 border-orange-500 rounded-full animate-spin-slow"></div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h2 className="text-3xl font-bold text-white animate-pulse">AO מעבד את המידע...</h2>
+                                            <p className="text-slate-500 italic">אנחנו הופכים קול לזהב דיגיטלי</p>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-8">
-                                        <div className="border-2 border-dashed border-slate-700 rounded-3xl p-10 hover:border-cyan-500/50 transition-colors group">
-                                            <input type="file" id="file-upload" className="hidden" onChange={(e) => setFile(e.target.files[0])} accept="audio/*,video/*" />
-                                            <label htmlFor="file-upload" className="cursor-pointer block">
-                                                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">📁</div>
-                                                <span className="text-xl font-bold text-slate-300 block mb-2">{file ? file.name : "גרור או בחר קובץ אודיו/וידאו"}</span>
-                                                <span className="text-slate-500 text-sm italic">AO ינתח את התוכן עבורך</span>
+                                    <div className="py-10">
+                                        <div className="mb-10 p-10 border-2 border-dashed border-slate-800 rounded-3xl hover:border-cyan-500/50 transition-all cursor-pointer bg-slate-900/30 group">
+                                            <input 
+                                                type="file" 
+                                                id="file-input" 
+                                                className="hidden" 
+                                                accept="audio/*,video/*" 
+                                                onChange={(e) => setFile(e.target.files[0])} 
+                                            />
+                                            <label htmlFor="file-input" className="cursor-pointer block">
+                                                <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🎙️</div>
+                                                <p className="text-2xl font-bold text-slate-200">
+                                                    {file ? file.name : "בחר קובץ להעלאה"}
+                                                </p>
+                                                <p className="text-slate-500 mt-2">אודיו או וידאו - AO יעשה את השאר</p>
                                             </label>
                                         </div>
+                                        
                                         {file && (
-                                            <button onClick={processFile} className="w-full bg-gradient-to-r from-cyan-600 to-cyan-500 text-slate-950 py-5 rounded-2xl font-black text-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:scale-[1.02] active:scale-95 transition-all">
-                                                הפעל ניתוח AO חכם
+                                            <button 
+                                                onClick={processFile}
+                                                className="w-full bg-gradient-to-r from-cyan-600 to-cyan-500 text-slate-950 py-5 rounded-2xl font-black text-2xl shadow-xl hover:shadow-cyan-500/20 hover:scale-[1.01] active:scale-95 transition-all"
+                                            >
+                                                הפעל ניתוח פרימיום
                                             </button>
                                         )}
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="space-y-6 animate-fade-in text-right">
-                                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                {/* Tabs */}
+                                <div className="flex gap-2 overflow-x-auto pb-4 mb-8 custom-scrollbar justify-start md:justify-center">
                                     {[
-                                        { id: 'transcription', label: 'תמלול', icon: '📝' },
-                                        { id: 'summary', label: 'סיכום', icon: '📋' },
-                                        { id: 'tasks', label: 'משימות', icon: '✅' },
-                                        { id: 'hooks', label: 'ויראלי', icon: '🚀' }
+                                        { id: 'transcription', label: 'תמלול', icon: '📄' },
+                                        { id: 'summary', label: 'סיכום', icon: '💡' },
+                                        { id: 'tasks', label: 'משימות', icon: '🎯' },
+                                        { id: 'hooks', label: 'ויראלי', icon: '🔥' }
                                     ].map(tab => (
-                                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === tab.id ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'}`}>
+                                        <button 
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
+                                                activeTab === tab.id 
+                                                ? 'bg-white text-slate-950 shadow-lg scale-105' 
+                                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+                                            }`}
+                                        >
                                             <span>{tab.icon}</span> {tab.label}
                                         </button>
                                     ))}
                                 </div>
-                                
-                                <div className="bg-slate-950/50 p-6 rounded-3xl border border-slate-800 min-h-[300px] leading-relaxed">
-                                    {activeTab === 'transcription' && <div className="whitespace-pre-wrap text-slate-300">{result.transcription}</div>}
-                                    {activeTab === 'summary' && <div className="text-slate-300 text-lg">{result.summary}</div>}
-                                    {activeTab === 'tasks' && (
-                                        <ul className="space-y-3">
-                                            {result.actionItems.map((item, i) => <li key={i} className="flex items-start gap-3 bg-slate-800/30 p-3 rounded-lg border border-slate-800/50"><span className="text-cyan-500 font-bold">✓</span> {item}</li>)}
-                                        </ul>
-                                    )}
-                                    {activeTab === 'hooks' && (
-                                        <div className="grid gap-4">
-                                            {result.viralHooks.map((hook, i) => <div key={i} className="bg-gradient-to-l from-orange-500/10 to-transparent p-4 rounded-xl border-r-4 border-orange-500 italic">"{hook}"</div>)}
-                                        </div>
-                                    )}
+
+                                {/* Content Area */}
+                                <div className="bg-slate-950/80 rounded-[2rem] p-6 md:p-8 border border-slate-800 min-h-[300px] relative">
+                                    <button 
+                                        onClick={() => handleCopy(
+                                            activeTab === 'transcription' ? result.transcription :
+                                            activeTab === 'summary' ? result.summary :
+                                            JSON.stringify(activeTab === 'tasks' ? result.actionItems : result.viralHooks)
+                                        )}
+                                        className="absolute left-6 top-6 bg-slate-800 hover:bg-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition-colors border border-slate-700"
+                                    >
+                                        {copyLabel}
+                                    </button>
+
+                                    <div className="mt-8 text-lg leading-relaxed text-slate-300">
+                                        {activeTab === 'transcription' && <p className="whitespace-pre-wrap">{result.transcription}</p>}
+                                        {activeTab === 'summary' && <p className="text-xl italic text-cyan-400">"{result.summary}"</p>}
+                                        {activeTab === 'tasks' && (
+                                            <div className="grid gap-4">
+                                                {result.actionItems.map((item, i) => (
+                                                    <div key={i} className="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl border-r-4 border-cyan-500">
+                                                        <span className="text-cyan-500 font-black">0{i+1}</span>
+                                                        <span>{item}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {activeTab === 'hooks' && (
+                                            <div className="grid gap-6">
+                                                {result.viralHooks.map((hook, i) => (
+                                                    <div key={i} className="bg-gradient-to-br from-orange-500/10 to-transparent p-6 rounded-2xl border border-orange-500/20">
+                                                        <p className="text-orange-400 font-black mb-2 italic">Hook #{i+1}</p>
+                                                        <p className="text-xl">"{hook}"</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                
-                                <button onClick={() => {setResult(null); setFile(null);}} className="w-full py-4 text-slate-500 font-bold hover:text-white transition-colors border-t border-slate-800 mt-4">
-                                    מעלה קובץ חדש →
+
+                                <button 
+                                    onClick={() => {setResult(null); setFile(null);}}
+                                    className="w-full mt-10 text-slate-500 font-bold hover:text-white transition-colors"
+                                >
+                                    מעלה קובץ חדש ←
                                 </button>
                             </div>
                         )}
                     </main>
-                    
-                    <footer className="mt-auto py-8 text-slate-600 text-sm font-bold uppercase tracking-widest">
-                        Developed by AO Productions &copy; 2026
+
+                    <footer className="mt-auto pt-10 text-center text-slate-600 font-bold tracking-[0.3em] text-xs uppercase">
+                        AO Productions &copy; 2026 | Tiberias, Israel
                     </footer>
                 </div>
             );
@@ -168,3 +270,5 @@
     </script>
 </body>
 </html>
+
+```
